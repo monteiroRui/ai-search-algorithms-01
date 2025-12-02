@@ -1,0 +1,28 @@
+;;;; puzzle.lisp
+;;;; Lógica específica do Peg Solitaire (Construída com base no LAB07)
+;;;; Projeto01 IA - 25/26
+
+;;; Representação do Tabuleiro (exemplo de teste incluído)
+(defun tabuleiro-inicial ()
+  "Tabuleiro inicial padrão com uma posição vazia no centro."
+  '(
+    (nil nil 1 1 1 nil nil)
+    (nil nil 1 1 1 nil nil)
+    (1 1 1 1 1 1 1)
+    (1 1 1 0 1 1 1)
+    (1 1 1 1 1 1 1)
+    (nil nil 1 1 1 nil nil)
+    (nil nil 1 1 1 nil nil)))
+
+;;; Seletores
+(defun linha (i tabuleiro)
+  (nth (1- i) tabuleiro))
+
+
+(defun coluna (j tabuleiro)
+  (mapcar (lambda (linha) (nth (1- j) linha)) tabuleiro))
+
+
+(defun celula (i j tabuleiro)
+  (let ((row (linha i tabuleiro)))
+    (if row (nth (1- j) row) nil)))

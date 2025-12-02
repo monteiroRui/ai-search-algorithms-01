@@ -1,0 +1,103 @@
+Projeto de IA Fase 01
+Etapa 01 - Compreensão
+
+Peg Solitaire Solver
+	Peg Solitaire is a one-player board game.
+	Cross-shaped board with 33 positions.
+	Goal:
+		Remove pegs by jumping one peg over another into an empty space.
+		The jumped peg is removed.
+		Only move horizontally or vertically, never diagonally.
+		The puzzle ends when only one peg remains.
+
+Project Purpose
+	Lisp Program to solve Peg Solitaire automatically using search algorithms
+	Program should:
+		Explore different possible moves
+		Try different paths
+		Stop when it finds a solution
+		Compare different search methods
+
+Required search Algorithms
+	BFS
+	DFS
+	A*
+		SMA* IDA* RBFS
+
+Program must do
+	Load puzzle configurations from a file (problemas.dat)
+	Let the user choose:
+		which problem to solve
+		which algorithm to use
+		which heuristic (for A*)
+	Run the chosen algorithm
+	Output
+		the sequence of moves
+		the board states
+	Generate a results file with statistics:
+		number of generated nodes
+		number of expanded nodes
+		branching factor
+		solution depth
+		execution time
+		penetration (as defined in class)
+
+Required File Structure
+	procura.lisp — SEARCH ALGORITHMS (generic)
+		Contains only BFS, DFS, A*, and optional bonus algorithms. No references to Solitaire or board details.
+	puzzle.lisp — PUZZLE LOGIC (Peg Solitaire specific)
+		The board representation (lists of lists with nil, 0, 1)
+		Validity tests for moves
+		Move operators:
+			cd (capture right)
+			ce (capture left)
+			cc (capture up)
+			cb (capture down)
+		Successor generation
+		Goal test (only 1 peg left)
+		Heuristics (one provided + one created by students)
+	projeto.lisp — USER INTERFACE
+		Loads procura.lisp and puzzle.lisp
+		Reads problems from problemas.dat
+		Shows a menu
+		Lets user choose algorithm & heuristic
+		Runs the solver
+		Prints the solution
+		Saves a results file
+
+Heuristics
+	Heuristic 1 (given)
+		h(x) = 1 / (number of possible moves + 1)
+	Heuristic 2 (yours)
+		number of pegs left
+		combination of pegs and mobility
+		distance to center
+		any admissible heuristic that improves A* performance
+
+Required Documentation
+two Markdown manuals, exported to PDF
+	Technical Manual
+		Algorithms used
+		Code structure
+		Heuristic design
+		Comparison of BFS/DFS/A* results
+		Limitations
+		Missing requirements (if any)
+	User Manual
+		Program goals
+		How to run it
+		What each menu option does
+		Required files
+		Program limitations (from user perspective)
+
+Implementation Constraints
+	Follow functional programming style
+	No mutable operations (set, setq, setf) except in controlled I/O
+	No destructive functions
+	No global variables
+	Only loops allowed for file I/O
+
+Problems to Solve
+	The file problemas.dat includes several boards (A–F).
+	During oral exam, problem G will be added and must work immediately.
+
