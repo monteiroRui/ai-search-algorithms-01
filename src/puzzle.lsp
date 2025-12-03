@@ -63,7 +63,9 @@
 
 ;; Teste: (operador-cd 4 2 (tabuleiro-inicial))
 (defun operador-cd (i j tabuleiro)
-  (when (and (celula-valida i j tabuleiro)
+"Movimento de captura para a direita: (i,j) = (i, j+2)"
+  (when (and (>= j 1) (<= j 5)        ; j+2 tem de caber no [1,7]
+             (celula-valida i j tabuleiro)
              (equal (celula i j tabuleiro) 1)
              (equal (celula i (+ j 1) tabuleiro) 1)
              (equal (celula i (+ j 2) tabuleiro) 0))
@@ -73,7 +75,9 @@
 
 ;; Teste: (operador-ce 4 6 (tabuleiro-inicial))
 (defun operador-ce (i j tabuleiro)
-  (when (and (celula-valida i j tabuleiro)
+"Movimento de captura para a esquerda: (i,j) = (i, j-2)"
+  (when (and (> j 2)                  ; j-2 >= 1
+             (celula-valida i j tabuleiro)
              (equal (celula i j tabuleiro) 1)
              (equal (celula i (- j 1) tabuleiro) 1)
              (equal (celula i (- j 2) tabuleiro) 0))
@@ -83,7 +87,9 @@
 
 ;; Teste: (operador-cc 6 4 (tabuleiro-inicial)) 
 (defun operador-cc (i j tabuleiro)
-  (when (and (celula-valida i j tabuleiro)
+"Movimento de captura para cima: (i,j) = (i-2, j)"
+  (when (and (> i 2)                  ; i-2 >= 1
+             (celula-valida i j tabuleiro)
              (equal (celula i j tabuleiro) 1)
              (equal (celula (- i 1) j tabuleiro) 1)
              (equal (celula (- i 2) j tabuleiro) 0))
@@ -93,7 +99,9 @@
 
 ;; Teste: (operador-cb 2 4 (tabuleiro-inicial)) 
 (defun operador-cb (i j tabuleiro)
-  (when (and (celula-valida i j tabuleiro)
+"Movimento de captura para baixo: (i,j) = (i+2, j)"
+  (when (and (>= i 1) (<= i 5)        ; i+2 <= 7
+             (celula-valida i j tabuleiro)
              (equal (celula i j tabuleiro) 1)
              (equal (celula (+ i 1) j tabuleiro) 1)
              (equal (celula (+ i 2) j tabuleiro) 0))
@@ -112,3 +120,98 @@
   (reduce #'+ (mapcar (lambda (linha)
                         (count 1 linha))
                       tabuleiro)))
+
+;;; Geração de sucessores
+
+;; Teste: (aplicar-operadores 4 2 (tabuleiro-inicial))
+(defun aplicar-operadores (i j tabuleiro)
+"Aplica todos os operadores possíveis na posição (i,j) e devolve
+ uma lista de novos tabuleiros válidos."
+  (remove nil
+          (list
+           (operador-cd i j tabuleiro)
+           (operador-ce i j tabuleiro)
+           (operador-cc i j tabuleiro)
+           (operador-cb i j tabuleiro))))
+
+(defun gera-sucessores-aux (i j tabuleiro)
+"Função auxiliar recursiva para varrer o tabuleiro e gerar sucessores."
+  (cond
+   ((> i 7) '())
+   ((> j 7) (gera-sucessores-aux (1+ i) 1 tabuleiro))
+   (t
+    (let ((depois-desta-pos (if (equal (celula i j tabuleiro) 1)
+                                (aplicar-operadores i j tabuleiro)
+                              '())))
+      (append depois-desta-pos
+              (gera-sucessores-aux i (1+ j) tabuleiro))))))
+
+;; Teste: (gera-sucessores (tabuleiro-inicial))
+;; Teste: (length (gera-sucessores (tabuleiro-inicial)))
+(defun gera-sucessores (tabuleiro)
+"Devolve a lista de todos os tabuleiros alcançáveis com um único movimento."
+  (gera-sucessores-aux 1 1 tabuleiro))
+
+;;; Heurísticas
+
+;; Teste: (h1 (tabuleiro-inicial))
+(defun h1 (tabuleiro)
+  (/ 1 (1+ (length (gera-sucessores tabuleiro)))))
+
+;;; ============================================================================
+;;; PROBLEMAS PREDEFINIDOS
+;;; ============================================================================
+
+(defun problema-a ()
+  "Problema A - quase resolvido, faltam 2 peças"
+  '((nil nil 0 0 0 nil nil)
+    (nil nil 0 0 0 nil nil)
+    (0 0 0 0 0 0 0)
+    (0 0 0 0 0 0 0)
+    (0 0 0 0 1 1 0)
+    (nil nil 0 1 0 nil nil)
+    (nil nil 0 0 0 nil nil)))
+
+(defun problema-b ()
+  "Problema B - 3 peças restantes"
+  '((nil nil 0 0 0 nil nil)
+    (nil nil 0 0 0 nil nil)
+    (0 0 0 0 0 0 0)
+    (0 0 0 1 0 0 0)
+    (0 0 0 1 1 1 0)
+    (nil nil 0 0 0 nil nil)
+    (nil nil 0 0 0 nil nil)))
+
+(defun problema-c ()
+  "Problema C - 5 peças restantes"
+  '((nil nil 0 0 0 nil nil)
+    (nil nil 0 0 0 nil nil)
+    (0 0 0 0 1 0 0)
+    (0 0 0 0 1 1 0)
+    (0 0 0 1 1 1 0)
+    (nil nil 0 0 0 nil nil)
+    (nil nil 0 0 0 nil nil)))
+
+(defun problema-d ()
+  "Problema D - 9 peças restantes"
+  '((nil nil 0 0 0 nil nil)
+    (nil nil 0 0 1 nil nil)
+    (0 0 0 0 1 1 0)
+    (0 0 0 0 1 1 1)
+    (0 0 0 1 1 1 1)
+    (nil nil 0 0 0 nil nil)
+    (nil nil 0 0 0 nil nil)))
+
+(defun problema-e ()
+  "Problema E - 10 peças restantes"
+  '((nil nil 0 0 0 nil nil)
+    (nil nil 0 0 0 nil nil)
+    (0 0 0 1 1 1 1)
+    (0 0 0 0 1 1 1)
+    (0 0 0 1 1 1 1)
+    (nil nil 0 0 0 nil nil)
+    (nil nil 0 0 0 nil nil)))
+
+(defun problema-f ()
+  "Problema F - tabuleiro inicial completo (32 peças)"
+  (tabuleiro-inicial))
