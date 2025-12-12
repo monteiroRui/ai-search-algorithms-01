@@ -36,40 +36,92 @@
     (when (equalp estado (no-estado n))
       (return t))))
 
+(defun tempo-segundos (t0 t1)
+  (/ (- t1 t0) (float internal-time-units-per-second)))
+
 ;;; BFS
 
 (defun abertos-bfs (resto novos)
   (append resto novos))
 
 (defun bfs (estado-inicial objetivo-p sucessores-fn)
-  (let ((abertos (list (cria-no estado-inicial)))
-        (fechados '()))
-    (labels ((bfs-aux (abertos fechados)
-               (if (null abertos)
-                   nil
-                 (let* ((no-atual (car abertos))
-                        (resto (cdr abertos))
-                        (estado (no-estado no-atual)))
-                   (if (funcall objetivo-p estado)
-                       no-atual
-                     (let* ((sucessores-estados
-                              (funcall sucessores-fn estado))
-                            (novos-nos-estados
-                              (remove-if
-                               (lambda (e)
-                                 (or (no-existep e fechados)
-                                     (no-existep e abertos)))
-                               sucessores-estados))
-                            (novos-nos
-                              (mapcar (lambda (e)
-                                        (cria-no e (1+ (no-g no-atual)) no-atual))
-                                      novos-nos-estados))
-                            (nova-fronteira
-                              (abertos-bfs resto novos-nos))
-                            (novos-fechados
-                              (cons no-atual fechados)))
-                       (bfs-aux nova-fronteira novos-fechados)))))))
-      (bfs-aux abertos fechados))))
+  (let ((t0 (get-internal-real-time)))
+    (labels
+        ((bfs-aux (abertos fechados
+                   nos-gerados nos-expandidos total-sucessores)
+
+           (cond
+             ((null abertos)
+              (let* ((t1 (get-internal-real-time))
+                     (tempo (/ (- t1 t0)
+                               (float internal-time-units-per-second))))
+                (values nil
+                        nos-gerados
+                        nos-expandidos
+                        (if (> nos-expandidos 0)
+                            (/ total-sucessores (float nos-expandidos))
+                            0.0)
+                        0.0
+                        tempo)))
+
+             (t
+              (let* ((no-atual (car abertos))
+                     (resto (cdr abertos))
+                     (estado (no-estado no-atual)))
+
+                (if (funcall objetivo-p estado)
+                    (let* ((t1 (get-internal-real-time))
+                           (tempo (/ (- t1 t0)
+                                     (float internal-time-units-per-second)))
+                           (prof (no-g no-atual))
+                           (pen (if (> nos-gerados 0)
+                                    (/ prof (float nos-gerados))
+                                    0.0)))
+                      (values no-atual
+                              nos-gerados
+                              nos-expandidos
+                              (if (> nos-expandidos 0)
+                                  (/ total-sucessores (float nos-expandidos))
+                                  0.0)
+                              pen
+                              tempo))
+
+                  (let* ((sucessores (funcall sucessores-fn estado))
+                         (novos-expandidos (1+ nos-expandidos))
+                         (novo-total-sucessores
+                          (+ total-sucessores (length sucessores)))
+
+                         (novos-estados
+                          (remove-if
+                           (lambda (e)
+                             (or (no-existep e fechados)
+                                 (no-existep e abertos)))
+                           sucessores))
+
+                         (novos-nos
+                          (mapcar (lambda (e)
+                                    (cria-no e (1+ (no-g no-atual)) no-atual))
+                                  novos-estados))
+
+                         (novos-gerados
+                          (+ nos-gerados (length novos-nos)))
+
+                         (nova-fronteira
+                          (append resto novos-nos))
+
+                         (novos-fechados
+                          (cons no-atual fechados)))
+
+                    (bfs-aux nova-fronteira
+                             novos-fechados
+                             novos-gerados
+                             novos-expandidos
+                             novo-total-sucessores))))))))
+      (bfs-aux (list (cria-no estado-inicial))
+               '()
+               1    
+               0
+               0))))
 
 ;;; DFS
 
@@ -77,33 +129,91 @@
   (append novos resto))
 
 (defun dfs (estado-inicial objetivo-p sucessores-fn profundidade-max)
-  (let ((abertos (list (cria-no estado-inicial)))
-        (fechados '()))
-    (labels ((dfs-aux (abertos fechados)
-               (if (null abertos)
-                   nil
-                 (let* ((no-atual (car abertos))
-                        (resto (cdr abertos))
-                        (estado (no-estado no-atual)))
-                   (if (funcall objetivo-p estado)
-                       no-atual
-                     (if (>= (no-g no-atual) profundidade-max)
-                         (dfs-aux resto fechados)
-                       (let* ((sucessores-estados
-                                (funcall sucessores-fn estado))
-                              (novos-estados
-                                (remove-if
-                                 (lambda (e)
-                                   (or (no-existep e fechados)
-                                       (no-existep e abertos)))
-                                 sucessores-estados))
-                              (novos-nos
-                                (mapcar (lambda (e)
-                                          (cria-no e (1+ (no-g no-atual)) no-atual))
-                                        novos-estados))
-                              (nova-fronteira
-                                (abertos-dfs resto novos-nos))
-                              (novos-fechados
-                                (cons no-atual fechados)))
-                         (dfs-aux nova-fronteira novos-fechados))))))))
-      (dfs-aux abertos fechados))))
+  (let ((t0 (get-internal-real-time)))
+    (labels
+        ((dfs-aux (abertos fechados
+                   nos-gerados nos-expandidos total-sucessores)
+
+           (cond
+
+             ((null abertos)
+              (let* ((t1 (get-internal-real-time))
+                     (tempo (/ (- t1 t0)
+                               (float internal-time-units-per-second))))
+                (values nil
+                        nos-gerados
+                        nos-expandidos
+                        (if (> nos-expandidos 0)
+                            (/ total-sucessores (float nos-expandidos))
+                            0.0)
+                        0.0
+                        tempo)))
+
+             (t
+              (let* ((no-atual (car abertos))
+                     (resto (cdr abertos))
+                     (estado (no-estado no-atual)))
+
+                (cond
+                  ((funcall objetivo-p estado)
+                   (let* ((t1 (get-internal-real-time))
+                          (tempo (/ (- t1 t0)
+                                    (float internal-time-units-per-second)))
+                          (prof (no-g no-atual))
+                          (pen (if (> nos-gerados 0)
+                                   (/ prof (float nos-gerados))
+                                   0.0)))
+                     (values no-atual
+                             nos-gerados
+                             nos-expandidos
+                             (if (> nos-expandidos 0)
+                                 (/ total-sucessores (float nos-expandidos))
+                                 0.0)
+                             pen
+                             tempo)))
+
+                  ((>= (no-g no-atual) profundidade-max)
+                   (dfs-aux resto
+                            fechados
+                            nos-gerados
+                            nos-expandidos
+                            total-sucessores))
+
+                  (t
+                   (let* ((sucessores (funcall sucessores-fn estado))
+                          (novos-expandidos (1+ nos-expandidos))
+                          (novo-total-sucessores
+                           (+ total-sucessores (length sucessores)))
+
+                          (novos-estados
+                           (remove-if
+                            (lambda (e)
+                              (or (no-existep e fechados)
+                                  (no-existep e abertos)))
+                            sucessores))
+
+                          (novos-nos
+                           (mapcar (lambda (e)
+                                     (cria-no e (1+ (no-g no-atual)) no-atual))
+                                   novos-estados))
+
+                          (novos-gerados
+                           (+ nos-gerados (length novos-nos)))
+
+                          (nova-fronteira
+                           (append novos-nos resto))
+
+                          (novos-fechados
+                           (cons no-atual fechados)))
+
+                     (dfs-aux nova-fronteira
+                              novos-fechados
+                              novos-gerados
+                              novos-expandidos
+                              novo-total-sucessores)))))))))
+
+      (dfs-aux (list (cria-no estado-inicial))
+               '()
+               1   
+               0
+               0))))
