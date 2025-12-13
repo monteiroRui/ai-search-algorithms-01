@@ -2,31 +2,62 @@
 ;;;; Projeto01 IA - 25/26
 ;;;; Requer: puzzle.lisp, procura.lisp, problemas.dat
 
+;;; Caminho base automático
 (defparameter *base-path*
-  (or *load-pathname*
-      *compile-file-pathname*
-      (error "Nao foi possivel determinar o caminho base.")))
+  (make-pathname
+   :directory (pathname-directory
+               (or *load-truename*
+                   *compile-file-truename*))
+   :name nil
+   :type nil))
 
-(load (merge-pathnames "puzzle.lisp" *base-path*))
-(load (merge-pathnames "procura.lisp" *base-path*))
+(setf *default-pathname-defaults* *base-path*)
+
+;;; =========================================================
+;;; Compilar e carregar puzzle.lisp (override garantido)
+;;; =========================================================
+
+(let* ((src (merge-pathnames "puzzle.lisp" *base-path*))
+       (fasl (compile-file src)))
+  (load fasl))
+
+;;; =========================================================
+;;; Compilar e carregar procura.lisp (override garantido)
+;;; =========================================================
+
+(let* ((src (merge-pathnames "procura.lisp" *base-path*))
+       (fasl (compile-file src)))
+  (load fasl))
+
+;;; =========================================================
+;;; Ler problemas
+;;; =========================================================
 
 (defun ler-problemas (ficheiro)
   (with-open-file (f ficheiro :direction :input)
-    (let ((problemas '())
-          (acc ""))
-      (loop for linha = (read-line f nil 'eof)
-            until (eq linha 'eof) do
-              (cond
-                ((string= linha "###")
-                 (when (plusp (length (string-trim " " acc)))
-                   (push (read-from-string acc) problemas))
-                 (setf acc ""))
-                (t
-                 (setf acc
-                       (concatenate 'string acc linha (string #\Newline))))))
-      (when (plusp (length (string-trim " " acc)))
-        (push (read-from-string acc) problemas))
-      (nreverse problemas))))
+    (labels ((trim-tudo (s)
+               (string-trim '(#\Space #\Tab #\Newline #\Return) s))
+             (push-acc (acc problemas)
+               (let ((tacc (trim-tudo acc)))
+                 (if (plusp (length tacc))
+                     (cons (read-from-string tacc) problemas)
+                     problemas))))
+      (let ((problemas '())
+            (acc ""))
+        (loop for linha = (read-line f nil 'eof)
+              until (eq linha 'eof) do
+                (if (string= linha "###")
+                    (progn
+                      (setf problemas (push-acc acc problemas))
+                      (setf acc ""))
+                    (setf acc (concatenate 'string acc linha (string #\Newline)))))
+        (setf problemas (push-acc acc problemas))
+        (nreverse problemas)))))
+
+
+;;; =========================================================
+;;; UI / Impressão
+;;; =========================================================
 
 (defun imprime-tabuleiro (tab)
   (format t "~%---------------- Tabuleiro ----------------~%")
@@ -52,11 +83,23 @@
   (format t "~%=========== SELECIONE O ALGORITMO ==========~%")
   (format t "1 - BFS (Procura em Largura)~%")
   (format t "2 - DFS (Procura em Profundidade)~%")
+  (format t "3 - A*  (Procura do Melhor Primeiro)~%")
   (format t "Escolha: ")
   (case (read)
     (1 'bfs)
     (2 'dfs)
+    (3 'a-star)
     (t (menu-algoritmo))))
+
+(defun menu-heuristica ()
+  (format t "~%=========== SELECIONE A HEURISTICA ==========~%")
+  (format t "1 - h1~%")
+  (format t "2 - h2~%")
+  (format t "Escolha: ")
+  (case (read)
+    (1 #'h1)
+    (2 #'h2)
+    (t (menu-heuristica))))
 
 (defun mostrar-caminho (no-final)
   (let ((caminho (construir-caminho no-final)))
@@ -67,7 +110,11 @@
     (dolist (estado caminho)
       (imprime-tabuleiro estado))
     (format t "~%========================================~%")
-    no-final))
+    (values)))
+
+;;; =========================================================
+;;; Relatório
+;;; =========================================================
 
 (defun limpar-relatorio (ficheiro)
   (with-open-file (f ficheiro :direction :output
@@ -92,17 +139,25 @@
     (format f "Penetrancia: ~,6F~%" penetrancia)
     (format f "Tempo (s): ~,4F~%" tempo)))
 
+;;; =========================================================
+;;; Main
+;;; =========================================================
+
 (defun iniciar ()
   (format t "~%===== PROJETO 01 - PEG SOLITAIRE SOLVER =====~%")
   (format t "~%A carregar problemas...~%")
   (let* ((problemas (ler-problemas (merge-pathnames "problemas.dat" *base-path*)))
          (relatorio (merge-pathnames "resultados.txt" *base-path*)))
     (limpar-relatorio relatorio)
+    (format t "~%[DEBUG] Total problemas: ~A~%" (length problemas))
+
     (multiple-value-bind (problema-id problema-escolhido)
         (menu-problema problemas)
+
       (let ((algoritmo (menu-algoritmo)))
         (format t "~%Problema escolhido:~%")
         (imprime-tabuleiro problema-escolhido)
+
         (cond
           ((eq algoritmo 'bfs)
            (format t "~%Executando BFS...~%")
@@ -112,6 +167,7 @@
              (if resultado
                  (mostrar-caminho resultado)
                  (format t "~%NAO FOI ENCONTRADA SOLUCAO.~%"))))
+
           ((eq algoritmo 'dfs)
            (format t "~%Qual a profundidade limite? ")
            (let ((lim (read)))
@@ -124,5 +180,19 @@
                (if resultado
                    (mostrar-caminho resultado)
                    (format t "~%NAO FOI ENCONTRADA SOLUCAO.~%")))))
+
+          ((eq algoritmo 'a-star)
+           (let ((hfun (menu-heuristica)))
+             (format t "~%Executando A* (~A)...~%"
+                     (if (eq hfun #'h1) "h1" "h2"))
+             (multiple-value-bind (resultado g e b p tempo)
+                 (a-star problema-escolhido #'objetivo? #'gera-sucessores hfun)
+               (escrever-relatorio relatorio problema-id
+                                   (format nil "A*(~A)" (if (eq hfun #'h1) "h1" "h2"))
+                                   resultado g e b p tempo)
+               (if resultado
+                   (mostrar-caminho resultado)
+                   (format t "~%NAO FOI ENCONTRADA SOLUCAO.~%")))))
+
           (t
            (format t "~%Algoritmo invalido.~%")))))))

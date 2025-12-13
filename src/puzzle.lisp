@@ -153,7 +153,46 @@
   (gera-sucessores-aux 1 1 tabuleiro))
 
 ;;; Heurísticas
+(defun peca-movivel? (i j tabuleiro)
+  (and (equal (celula i j tabuleiro) 1)
+       (or (operador-cd i j tabuleiro)
+           (operador-ce i j tabuleiro)
+           (operador-cc i j tabuleiro)
+           (operador-cb i j tabuleiro))))
+
+(defun contar-pecas-moviveis-aux (i j tabuleiro)
+  (cond
+    ((> i 7) 0)
+    ((> j 7) (contar-pecas-moviveis-aux (1+ i) 1 tabuleiro))
+    ((peca-movivel? i j tabuleiro)
+     (1+ (contar-pecas-moviveis-aux i (1+ j) tabuleiro)))
+    (t
+     (contar-pecas-moviveis-aux i (1+ j) tabuleiro))))
+
+(defun contar-pecas-moviveis (tabuleiro)
+  (contar-pecas-moviveis-aux 1 1 tabuleiro))
+
+(defun dist-centro (i j)
+  (+ (abs (- i 4)) (abs (- j 4))))
+
+(defun soma-dist-centro-aux (i j tabuleiro)
+  (cond
+    ((> i 7) 0)
+    ((> j 7) (soma-dist-centro-aux (1+ i) 1 tabuleiro))
+    ((and (celula-valida i j tabuleiro)
+          (equal (celula i j tabuleiro) 1))
+     (+ (dist-centro i j)
+        (soma-dist-centro-aux i (1+ j) tabuleiro)))
+    (t
+     (soma-dist-centro-aux i (1+ j) tabuleiro))))
+
+(defun soma-dist-centro (tabuleiro)
+  (soma-dist-centro-aux 1 1 tabuleiro))
 
 ;; Teste: (h1 (tabuleiro-inicial))
 (defun h1 (tabuleiro)
-  (/ 1 (1+ (length (gera-sucessores tabuleiro)))))
+  (/ 1.0 (+ 1 (contar-pecas-moviveis tabuleiro))))
+
+(defun h2 (tabuleiro)
+  (+ (/ 1.0 (+ 1 (contar-pecas-moviveis tabuleiro)))
+     (/ (soma-dist-centro tabuleiro) 20.0)))
