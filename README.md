@@ -58,4 +58,4 @@ Built as part of the Artificial Intelligence course (2025/2026) using **Common L
 - Rui Monteiro
 - Daniel Pais
 
-> For a detailed breakdown of the architecture, heuristic analysis, and performance benchmarks, see the [Technical Manual](Manuals/TechnicalManual/TechnicalManual.md).
+> For a detailed breakdown of the architecture, heuristic analysis, and performance benchmarks, see the [Technical Manual](https://github.com/monteiroRui/ai-search-algorithms-01/blob/main/Manuals/TechnicalManual/TechnicalManual.md).
